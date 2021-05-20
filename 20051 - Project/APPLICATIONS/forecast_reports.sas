@@ -9,7 +9,7 @@
 /*     Muptiple excel report files in in upload_report_folder (check configuration.sas)*/
 /***********************************************************************/
 
-%include "C:\SAS\APPLICATIONS\SAS\configuration.sas";
+%include "&sas_applications_folder.\configuration.sas";
 %include "&sas_applications_folder.\cleanup_xlsx_bak_folder.sas";
 %include "&sas_applications_folder.\read_sales_history_weekly.sas";
 %include "&sas_applications_folder.\xls_capacity.sas";
@@ -945,7 +945,11 @@
   %let ka_material_division=%sysfunc(compress(%quote(&material_division.),,ka));
   %let sas_report_fname=&region.&product_line_group.&ka_material_division.&first_season.%substr(&round., 1, 1)&current_year_week.&_seasonality.;
 
+  %put &=pm_feedback;
+
+
   %read_forecast_file(forecast_file=&pm_feedback., forecast_sheet=Variety level fcst);
+
 
   data pm_feedback1 (keep=variety country PLC future_plc valid_from_date global_plc global_future_plc global_valid_from_date sum_of_3_seasons pmf_demand1 pmf_demand2 pmf_demand3 pmf_assm1 pmf_assm2 pmf_assm3);
     set forecast_file(rename=(
@@ -963,25 +967,27 @@
     if country="&region." then output;
   run;
 
-  %if "&refresh_plc_from_PMD."="Y" %then %do;
-    %refresh_plc(table_in=pm_feedback1, table_out=pm_feedback2);
-  %end; %else %do;
-    data pm_feedback2(drop=rc);
-      set pm_feedback1;
-      if _N_=1 then do;
-        declare hash refresh_plc(dataset: 'ff_plc');
-          rc=refresh_plc.DefineKey ('variety');
-          rc=refresh_plc.DefineData ('plc', 'future_plc', 'valid_from_date', 'global_plc', 'global_future_plc', 'global_valid_from_date');
-          rc=refresh_plc.DefineDone();
-      end;
-      rc=refresh_plc.find();
-    run;
-  %end;
 
-  %g2_logic(table_in=pm_feedback2, table_out=pm_feedback3, first_season=&first_season., demand_col=pmf_demand, seasonality=&seasonality.);
+  data forecast_file;
+     set forecast_file(rename=(
+                      dmpm_demand_&nextseason1.=pmf_demand1
+                      dmpm_demand_&nextseason2.=pmf_demand2
+                      dmpm_demand_&nextseason3.=pmf_demand3
+                      assumptions_&nextseason1.=pmf_assm1
+                      assumptions_&nextseason2.=pmf_assm2
+                      assumptions_&nextseason3.=pmf_assm3
+                     ));
+					 if country="&region." then output;
+  run;
+
+  %g2_logic(table_in=forecast_file, table_out=pm_feedback3, first_season=&first_season., demand_col=pmf_demand, seasonality=&seasonality.);
   %e2_logic(table_in=pm_feedback3, table_out=pm_feedback4, first_season=&first_season., demand_col=pmf_demand, seasonality=&seasonality.);
+  
 
-  proc sql;
+  
+  
+   %put dmfcst1.&sas_report_fname;
+   proc sql;
     create table pmf1 as
     select a.*, 
           b.PLC,
@@ -1003,18 +1009,37 @@
     left join pm_feedback4 b on a.variety=b.variety;
   quit;
 
-
+   
+  %if "&refresh_plc_from_PMD."="Y" %then %do;
+    %refresh_plc(table_in=pmf1, table_out=pmf1);
+  %end; %else %do;
+    data pmf1(drop=rc);
+      set pmf1;
+      if _N_=1 then do;
+        declare hash refresh_plc(dataset: 'ff_plc');
+          rc=refresh_plc.DefineKey ('variety');
+          rc=refresh_plc.DefineData ('plc', 'future_plc', 'valid_from_date', 'global_plc', 'global_future_plc', 'global_valid_from_date');
+          rc=refresh_plc.DefineDone();
+      end;
+      rc=refresh_plc.find();
+    run;
+  %end;
+ 
+ 
   proc sql;
     create table pmf2 as
     select a.*, round(b.supply_total*a.country_split) as pmf_supply from pmf1 a
-    left join (select variety, supply as supply_total from pmf1 where country="&region.") b on a.variety=b.variety;
+    left join (select distinct variety, supply as supply_total from pmf1 where country="&region.") b on a.variety=b.variety;
   quit;
 
+ 
   proc sql;
     create table pmf3 as
     select a.*, round(b.capacity_total*a.country_split) as pmf_capacity from pmf2 a
-    left join (select variety, capacity as capacity_total from pmf1 where country="&region.") b on a.variety=b.variety;
+    left join (select distinct variety, capacity as capacity_total from pmf1 where country="&region.") b on a.variety=b.variety;
   quit;
+
+  
 
   data pmf4;
     set pmf3;
@@ -1024,6 +1049,7 @@
     pmf_sm_demand3=pmf_split_demand3;
   run;
 
+
   %if "&refresh_sales_week."^="" %then %do;
     %refresh_sales(table_in=pmf4, table_out=pmf5, refresh_year_week=&refresh_sales_week.);
   %end; %else %do;
@@ -1031,6 +1057,8 @@
       set pmf4;
     run;
   %end;
+
+
 
   data pmf_end;
     set pmf5;
@@ -1126,7 +1154,10 @@
     run;
   %end;
 
+  
   %cleanup_xlsx_bak_folder(cleanup_folder=%str(&sm_folder.));
+
+
 
 %mend forecast_report_step2;
 
