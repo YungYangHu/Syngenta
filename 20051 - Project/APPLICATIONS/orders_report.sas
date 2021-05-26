@@ -291,6 +291,7 @@
     set order_report;
     length rc _price price actual_sales_value historical_sales_value 8.;
     length hash_mat_div $3.;
+	product_line=upcase(product_line); /* bugfix missing price column: product_line is uppercase in price table */
     if _n_=1 then do;
       declare hash price_list(dataset: 'dmimport.price_list(rename=(price=_price))');
           rc=price_list.DefineKey ('region', 'product_line', 'species_code');
