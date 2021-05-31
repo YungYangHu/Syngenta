@@ -24,7 +24,8 @@
                                 previous_season=, 
                                 region=, 
                                 material_division=, 
-                                product_line_group=);
+                                product_line_group=,
+								species=);
 
   proc datasets library=work nolist;
     delete sales_history;
@@ -190,7 +191,10 @@
 
   data sales_history5;
     set sales_history4;
-    if product_line_group="&product_line_group." then output;
+	%if &species NE %then 
+       if hash_species_name in (&species) then output;
+    %else	  
+    if product_line_group="&product_line_group." then output;;
   run;
 
   %filter_orders(in_table=sales_history5, out_table=sales_history6);
