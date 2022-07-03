@@ -804,7 +804,7 @@
     if sls_doc_nr='1164001' and matdescr='PEPZ ACAPULCO CASCADE' then reject=1; /*1 line of incorrect data*/
     if Soldto_name='SAMPLE CUSTOMER' then reject=1; /*sample customer*/
     if soldto_nr='10029017' and shipto_nr='10036720' and substr(matdescr, 1, 4)='MANZ' then reject=1; /*EXCEPTION - Delete all rows from Soldto nr.ù: 10029017 (Syngenta Seeds SAS Promo Fleurs) in combined with Ship to nr.ù 10036720 (Cultius Tolra, S.L.)*/
-
+    
     if missing(reject) then output orders;
     if reject=1 then output dmimport.orders_rejected;
   run;
@@ -985,7 +985,13 @@
         order_month_season=order_year-1;
       end;
     end;
-
+	/* change in office for sls_off of 'NA3','NA4','NA5','NS1','NE4' */
+	/* is only after 01JUL2022. so changing office back to NL51 where applicable */
+    if region='SFE' and sls_grp in ('NA3','NA4','NA5','NS1','NE4') and Hdr_req_deldte LT '01JUL2022'd 
+        then sls_off='NL51';
+		else if region='SFE' and sls_grp in ('NA3','NA4','NA5','NS1','NE4') and Hdr_req_deldte GE '01JUL2022'd 
+        then sls_off='NL54';
+  run;
     /*if order_week=53 then order_week=52; - there is no week 53 in data anymore*/ 
   run;
 
