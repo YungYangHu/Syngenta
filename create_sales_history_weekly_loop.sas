@@ -59,10 +59,10 @@
 %MEND;
 
 
-%loop_hist(year_loop=2018,weekstart=15,weekend=52);
-%loop_hist(year_loop=2019,weekstart=1,weekend=52);
-%loop_hist(year_loop=2020,weekstart=1,weekend=53);
+/*%loop_hist(year_loop=2018,weekstart=15,weekend=52);*/
+/*%loop_hist(year_loop=2019,weekstart=1,weekend=52);*/
+/*%loop_hist(year_loop=2020,weekstart=1,weekend=53);*/
 %loop_hist(year_loop=2021,weekstart=1,weekend=52);
-%loop_hist(year_loop=2021,weekstart=1,weekend=21);
-
+%loop_hist(year_loop=2022,weekstart=1,weekend=21);
+%loop_hist(year_loop=2018,weekstart=1,weekend=14);
  
